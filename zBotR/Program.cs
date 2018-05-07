@@ -46,18 +46,33 @@ namespace zBotR
                 Log(new LogMessage(LogSeverity.Info, "Client",
                         $"{_client.CurrentUser.Username} is connected to" +
                         $" {_client.Guilds.Count} guild, serving a total of {n} online users."));
+                Log(new LogMessage(LogSeverity.Info, "Client", $"Total of {_optout.Count} users opted out."));
                 Console.ResetColor();
-
-
+                CheckUsersTimer();
                 return Task.CompletedTask;
             };
-
             await Task.Delay(Timeout.Infinite);
         }
 
         private async Task CheckUsers()
         {
+            await Task.Run(async () =>
+            {
+                foreach (var guild in _client.Guilds)
+                {
+                    foreach (var user in guild.Users)
+                    {
+                        if (user.Activity != null && user.Activity.Type == ActivityType.Streaming && !_optout.Contains(user.Id.ToString())) // check if streaming
+                        {
+                            await Log(new LogMessage(LogSeverity.Info, "Client", $"{user} stream title -  {user.Activity.Name}"));
+                        }
 
+                        // check if not streaming but has role
+                    }
+                }
+
+                return Task.CompletedTask;
+            });
         }
 
         private async Task CheckSingleUser(SocketGuildUser user)
@@ -70,6 +85,23 @@ namespace zBotR
 
         }
 
+        private void CheckUsersTimer()
+        {
+            Task.Run(async () =>
+            {
+                while (true)
+                {
+                    Console.ForegroundColor = ConsoleColor.Blue;
+                    await Log(new LogMessage(LogSeverity.Info, "Timer", "Checking users for stream status..."));
+                    Console.ResetColor();
+                    await CheckUsers();
+                    Console.ForegroundColor = ConsoleColor.Blue;
+                    await Log(new LogMessage(LogSeverity.Info, "Timer", "Done. Sleeping for 5000 ms..."));
+                    Console.ResetColor();
+                    await Task.Delay(5000);
+                }
+            });
+        }
 
         private Task Log(LogMessage message)
         {
