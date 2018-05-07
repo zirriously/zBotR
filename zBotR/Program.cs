@@ -35,7 +35,7 @@ namespace zBotR
             _client.Log += Log;
             _client.MessageReceived += MessageReceived;
 
-            var botvars = JsonConvert.DeserializeObject<dynamic>(File.ReadAllText(@"..\..\botvars.json"));
+            var botvars = JsonConvert.DeserializeObject<dynamic>(File.ReadAllText(@".\botvars.json"));
             _twitchclientid = botvars.twitchclientid;
             string[] optoutarray = botvars.optout.ToObject<string[]>();
             _optout = optoutarray.ToList();
@@ -204,7 +204,7 @@ namespace zBotR
                         new JProperty("token", _token),
                         new JProperty("twitchclientid", _twitchclientid),
                         new JProperty("optout", _optout));
-                    File.WriteAllText(@"..\..\botvars.json", botvars.ToString());
+                    File.WriteAllText(@".\botvars.json", botvars.ToString());
                     await Log(new LogMessage(LogSeverity.Info, "Optout", "Successfully saved new json file."));
                 }
             }
