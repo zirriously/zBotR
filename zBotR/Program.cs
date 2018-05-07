@@ -18,6 +18,7 @@ namespace zBotR
         private List<string> _optout;
         private const string _apiLink = "https://api.twitch.tv/kraken/streams/";
         private ulong _liveRoleID;
+        private IRole _liveRole;
 
         static void Main(string[] args) => new Program().MainAsync().GetAwaiter().GetResult();
 
@@ -50,7 +51,12 @@ namespace zBotR
                         $" {_client.Guilds.Count} guild, serving a total of {n} online users."));
                 Log(new LogMessage(LogSeverity.Info, "Client", $"Total of {_optout.Count} users opted out."));
                 Console.ResetColor();
-                //CheckUsersTimer();
+                CheckUsersTimer();
+
+                foreach (var guild in _client.Guilds)
+                {
+                    _liveRole = guild.GetRole(_liveRoleID);
+                }
 
                 return Task.CompletedTask;
             };
@@ -65,12 +71,21 @@ namespace zBotR
                 {
                     foreach (var user in guild.Users)
                     {
-                        if (user.Activity != null && user.Activity.Type == ActivityType.Streaming && !_optout.Contains(user.Id.ToString())) // check if streaming
+                        if (user.Activity != null && user.Activity.Type == ActivityType.Streaming
+                            && !_optout.Contains(user.Id.ToString()) && !user.Roles.Contains(_liveRole)) // check if streaming
                         {
-                            await Log(new LogMessage(LogSeverity.Info, "Client", $"{user} stream title -  {user.Activity.Name}"));
+                            await Log(new LogMessage(LogSeverity.Info, "Client", $"{user} is streaming. Checking game being streamed..."));
                         }
 
                         // check if not streaming but has role
+                        else if (user.Activity != null &&
+                                 (user.Roles.Contains(_liveRole) && user.Activity.Type != ActivityType.Streaming))
+                        {
+                            Console.ForegroundColor = ConsoleColor.Red;
+                            await Log(new LogMessage(LogSeverity.Info, "Client", $"{user} is no longer streaming. Removing role."));
+                            Console.ResetColor();
+                            await user.RemoveRoleAsync(_liveRole);
+                        }
                     }
                 }
 
