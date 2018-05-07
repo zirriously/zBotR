@@ -86,7 +86,7 @@ namespace zBotR
                                  (user.Roles.Contains(_liveRole) && user.Activity.Type != ActivityType.Streaming))
                         {
                             Console.ForegroundColor = ConsoleColor.Red;
-                            await Log(new LogMessage(LogSeverity.Info, "Client", $"{user} is no longer streaming Factorio. Removing role."));
+                            await Log(new LogMessage(LogSeverity.Info, "Client", $"{user} is no longer streaming. Removing role."));
                             Console.ResetColor();
                             await user.RemoveRoleAsync(_liveRole);
                         }
@@ -113,6 +113,14 @@ namespace zBotR
             var apiRequest = _apiLink + twitchUserName;
             var apiRequestResponse = await TwitchRequest(apiRequest);
 
+            if (apiRequestResponse == null)
+            {
+                Console.ForegroundColor = ConsoleColor.Red;
+                await Log(new LogMessage(LogSeverity.Info, "API", "Error fetching API data."));
+                Console.ResetColor();
+                return;
+            }
+
             var responseJson = JsonConvert.DeserializeObject<dynamic>(apiRequestResponse);
             var gameStreamed = responseJson.stream.game;
 
@@ -132,6 +140,13 @@ namespace zBotR
                     $"{user} is streaming Factorio, but already has role. Not assigning."));
                 Console.ResetColor();
             }
+            else if (gameStreamed != "Factorio" && user.Roles.Contains(_liveRole))
+            {
+                Console.ForegroundColor = ConsoleColor.Red;
+                await Log(new LogMessage(LogSeverity.Info, "Client", $"{user} is streaming, but not Factorio. Removing role."));
+                Console.ResetColor();
+                await user.RemoveRoleAsync(_liveRole);
+            }
         }
 
         private void CheckUsersTimer()
@@ -145,9 +160,9 @@ namespace zBotR
                     Console.ResetColor();
                     await CheckUsers();
                     Console.ForegroundColor = ConsoleColor.Blue;
-                    await Log(new LogMessage(LogSeverity.Info, "Timer", "Done. Sleeping for 50000 ms..."));
+                    await Log(new LogMessage(LogSeverity.Info, "Timer", "Done. Sleeping for 1 minute..."));
                     Console.ResetColor();
-                    await Task.Delay(50000);
+                    await Task.Delay(60000);
                 }
             });
         }
@@ -175,7 +190,6 @@ namespace zBotR
                 sr.Close();
                 return Task.FromResult(strResponse);
             }
-            Log(new LogMessage(LogSeverity.Info, "API", "Error fetching API data."));
             return null;
 
         }
