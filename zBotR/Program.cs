@@ -6,6 +6,8 @@ using System.Threading.Tasks;
 using Discord;
 using Discord.WebSocket;
 using System.IO;
+using System.Net;
+using System.Runtime.CompilerServices;
 using System.Threading;
 using Newtonsoft.Json;
 
@@ -71,10 +73,11 @@ namespace zBotR
                 {
                     foreach (var user in guild.Users)
                     {
+                        // check if streaming
                         if (user.Activity != null && user.Activity.Type == ActivityType.Streaming
-                            && !_optout.Contains(user.Id.ToString()) && !user.Roles.Contains(_liveRole)) // check if streaming
+                            && !_optout.Contains(user.Id.ToString()))
                         {
-                            await Log(new LogMessage(LogSeverity.Info, "Client", $"{user} is streaming. Checking game being streamed..."));
+                            await CheckSingleUser(user);
                         }
 
                         // check if not streaming but has role
@@ -82,7 +85,7 @@ namespace zBotR
                                  (user.Roles.Contains(_liveRole) && user.Activity.Type != ActivityType.Streaming))
                         {
                             Console.ForegroundColor = ConsoleColor.Red;
-                            await Log(new LogMessage(LogSeverity.Info, "Client", $"{user} is no longer streaming. Removing role."));
+                            await Log(new LogMessage(LogSeverity.Info, "Client", $"{user} is no longer streaming Factorio. Removing role."));
                             Console.ResetColor();
                             await user.RemoveRoleAsync(_liveRole);
                         }
@@ -95,7 +98,15 @@ namespace zBotR
 
         private async Task CheckSingleUser(SocketGuildUser user)
         {
+            var streamingGame = (StreamingGame) user.Activity;
+            var twitchUserName = streamingGame.Url.Substring(streamingGame.Url.LastIndexOf('/') + 1);
+            var apiRequest = _apiLink + twitchUserName;
+            var apiRequestResponse = await TwitchRequest(apiRequest);
 
+            var responseJson = JsonConvert.DeserializeObject<dynamic>(apiRequestResponse);
+            var gameStreamed = responseJson.stream.game;
+
+            await Log(new LogMessage(LogSeverity.Info, "API", $"{user} is streaming {gameStreamed}"));
         }
 
         private async Task AssignLiveRole(SocketGuildUser user)
@@ -116,7 +127,7 @@ namespace zBotR
                     Console.ForegroundColor = ConsoleColor.Blue;
                     await Log(new LogMessage(LogSeverity.Info, "Timer", "Done. Sleeping for 5000 ms..."));
                     Console.ResetColor();
-                    await Task.Delay(5000);
+                    await Task.Delay(500000);
                 }
             });
         }
@@ -125,6 +136,22 @@ namespace zBotR
         {
             Console.WriteLine(message.ToString());
             return Task.CompletedTask;
+        }
+
+        private Task<string> TwitchRequest(string url)
+        {
+            var req = (HttpWebRequest) WebRequest.Create(url);
+            req.Method = "GET";
+            req.Headers.Add("Client-ID", _twitchclientid);
+            req.Timeout = 2000;
+            req.KeepAlive = true;
+
+            var webResponse = (HttpWebResponse) req.GetResponse();
+
+            var sr = new StreamReader(webResponse.GetResponseStream() ?? throw new InvalidOperationException());
+            string strResponse = sr.ReadToEnd();
+            sr.Close();
+            return Task.FromResult(strResponse);
         }
     }
 }
