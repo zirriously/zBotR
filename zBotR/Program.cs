@@ -77,7 +77,8 @@ namespace zBotR
                         if (user.Activity != null && user.Activity.Type == ActivityType.Streaming
                             && !_optout.Contains(user.Id.ToString()))
                         {
-                            await CheckSingleUser(user);
+                            await Task.Delay(1);
+                            CheckSingleUser(user);
                         }
 
                         // check if not streaming but has role
@@ -98,7 +99,16 @@ namespace zBotR
 
         private async Task CheckSingleUser(SocketGuildUser user)
         {
-            var streamingGame = (StreamingGame) user.Activity;
+            StreamingGame streamingGame;
+            if (user.Activity != null && user.Activity.Type == ActivityType.Streaming)
+            {
+                streamingGame = (StreamingGame) user.Activity;
+            }
+            else
+            {
+                await Log(new LogMessage(LogSeverity.Info, "CRITICAL", $"Error"));
+                return;
+            }
             var twitchUserName = streamingGame.Url.Substring(streamingGame.Url.LastIndexOf('/') + 1);
             var apiRequest = _apiLink + twitchUserName;
             var apiRequestResponse = await TwitchRequest(apiRequest);
@@ -107,11 +117,21 @@ namespace zBotR
             var gameStreamed = responseJson.stream.game;
 
             await Log(new LogMessage(LogSeverity.Info, "API", $"{user} is streaming {gameStreamed}"));
-        }
 
-        private async Task AssignLiveRole(SocketGuildUser user)
-        {
-
+            if (gameStreamed == "Factorio" && !user.Roles.Contains(_liveRole))
+            {
+                Console.ForegroundColor = ConsoleColor.Green;
+                await Log(new LogMessage(LogSeverity.Info, "API", $"{user} is streaming Factorio and does not have live role. Assigning!"));
+                Console.ResetColor();
+                await user.AddRoleAsync(_liveRole);
+            }
+            else if (gameStreamed == "Factorio" && user.Roles.Contains(_liveRole))
+            {
+                Console.ForegroundColor = ConsoleColor.DarkBlue;
+                await Log(new LogMessage(LogSeverity.Info, "API",
+                    $"{user} is streaming Factorio, but already has role. Not assigning."));
+                Console.ResetColor();
+            }
         }
 
         private void CheckUsersTimer()
@@ -125,9 +145,9 @@ namespace zBotR
                     Console.ResetColor();
                     await CheckUsers();
                     Console.ForegroundColor = ConsoleColor.Blue;
-                    await Log(new LogMessage(LogSeverity.Info, "Timer", "Done. Sleeping for 5000 ms..."));
+                    await Log(new LogMessage(LogSeverity.Info, "Timer", "Done. Sleeping for 50000 ms..."));
                     Console.ResetColor();
-                    await Task.Delay(500000);
+                    await Task.Delay(50000);
                 }
             });
         }
@@ -140,18 +160,24 @@ namespace zBotR
 
         private Task<string> TwitchRequest(string url)
         {
-            var req = (HttpWebRequest) WebRequest.Create(url);
+            var req = (HttpWebRequest)WebRequest.Create(url);
             req.Method = "GET";
             req.Headers.Add("Client-ID", _twitchclientid);
             req.Timeout = 2000;
             req.KeepAlive = true;
 
-            var webResponse = (HttpWebResponse) req.GetResponse();
+            var webResponse = (HttpWebResponse)req.GetResponse();
 
-            var sr = new StreamReader(webResponse.GetResponseStream() ?? throw new InvalidOperationException());
-            string strResponse = sr.ReadToEnd();
-            sr.Close();
-            return Task.FromResult(strResponse);
+            if (webResponse.StatusCode == HttpStatusCode.OK)
+            {
+                var sr = new StreamReader(webResponse.GetResponseStream() ?? throw new InvalidOperationException());
+                string strResponse = sr.ReadToEnd();
+                sr.Close();
+                return Task.FromResult(strResponse);
+            }
+            Log(new LogMessage(LogSeverity.Info, "API", "Error fetching API data."));
+            return null;
+
         }
     }
 }
