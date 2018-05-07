@@ -33,6 +33,7 @@ namespace zBotR
             });
 
             _client.Log += Log;
+            _client.MessageReceived += MessageReceived;
 
             var botvars = JsonConvert.DeserializeObject<dynamic>(File.ReadAllText(@"..\..\botvars.json"));
             string token = botvars.token;
@@ -165,6 +166,34 @@ namespace zBotR
                     await Task.Delay(60000);
                 }
             });
+        }
+
+        private async Task MessageReceived(SocketMessage message)
+        {
+            if (message.Channel.Name == "bot-stuff" && message.Content.StartsWith(".."))
+            {
+                switch (message.Content)
+                {
+                    case "..optin" when _optout.Contains(message.Author.Id.ToString()):
+                        _optout.Remove(message.Author.Id.ToString());
+                        await message.Channel.SendMessageAsync($"{message.Author.Username} has opted in.");
+                        await Log(new LogMessage(LogSeverity.Info, "Optout", $"{message.Author.Username} has opted in."));
+                        break;
+                    case "..optin" when !_optout.Contains(message.Author.Id.ToString()):
+                        await message.Channel.SendMessageAsync($"Error - {message.Author.Username} is already opted in.");
+                        await Log(new LogMessage(LogSeverity.Info, "Optout", $"Error - {message.Author.Username} is already opted in."));
+                        break;
+                    case "..optout" when !_optout.Contains(message.Author.Id.ToString()):
+                        _optout.Add(message.Author.Id.ToString());
+                        await message.Channel.SendMessageAsync($"{message.Author.Username} has opted out.");
+                        await Log(new LogMessage(LogSeverity.Info, "Optout", $"{message.Author.Username} has opted out."));
+                        break;
+                    case "..optout" when _optout.Contains(message.Author.Id.ToString()):
+                        await message.Channel.SendMessageAsync($"Error - {message.Author.Username} is already opted out.");
+                        await Log(new LogMessage(LogSeverity.Info, "Optout", $"Error - {message.Author.Username} is already opted out."));
+                        break;
+                }
+            }
         }
 
         private Task Log(LogMessage message)
