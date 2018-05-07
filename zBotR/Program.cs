@@ -10,6 +10,7 @@ using System.Net;
 using System.Runtime.CompilerServices;
 using System.Threading;
 using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
 
 namespace zBotR
 {
@@ -21,6 +22,7 @@ namespace zBotR
         private const string _apiLink = "https://api.twitch.tv/kraken/streams/";
         private ulong _liveRoleID;
         private IRole _liveRole;
+        string _token;
 
         static void Main(string[] args) => new Program().MainAsync().GetAwaiter().GetResult();
 
@@ -36,13 +38,13 @@ namespace zBotR
             _client.MessageReceived += MessageReceived;
 
             var botvars = JsonConvert.DeserializeObject<dynamic>(File.ReadAllText(@"..\..\botvars.json"));
-            string token = botvars.token;
             _twitchclientid = botvars.twitchclientid;
             string[] optoutarray = botvars.optout.ToObject<string[]>();
             _optout = optoutarray.ToList();
             _liveRoleID = botvars.roleid;
+            _token =  botvars.token;
 
-            await _client.LoginAsync(TokenType.Bot, token);
+            await _client.LoginAsync(TokenType.Bot, _token);
             await _client.StartAsync();
 
             _client.Ready += () =>
@@ -172,10 +174,12 @@ namespace zBotR
         {
             if (message.Channel.Name == "bot-stuff" && message.Content.StartsWith(".."))
             {
+                bool changedList = false;
                 switch (message.Content)
                 {
                     case "..optin" when _optout.Contains(message.Author.Id.ToString()):
                         _optout.Remove(message.Author.Id.ToString());
+                        changedList = true;
                         await message.Channel.SendMessageAsync($"{message.Author.Username} has opted in.");
                         await Log(new LogMessage(LogSeverity.Info, "Optout", $"{message.Author.Username} has opted in."));
                         break;
@@ -185,6 +189,7 @@ namespace zBotR
                         break;
                     case "..optout" when !_optout.Contains(message.Author.Id.ToString()):
                         _optout.Add(message.Author.Id.ToString());
+                        changedList = true;
                         await message.Channel.SendMessageAsync($"{message.Author.Username} has opted out.");
                         await Log(new LogMessage(LogSeverity.Info, "Optout", $"{message.Author.Username} has opted out."));
                         break;
@@ -192,6 +197,17 @@ namespace zBotR
                         await message.Channel.SendMessageAsync($"Error - {message.Author.Username} is already opted out.");
                         await Log(new LogMessage(LogSeverity.Info, "Optout", $"Error - {message.Author.Username} is already opted out."));
                         break;
+                }
+
+                if (changedList)
+                {
+                    JObject botvars = new JObject(
+                        new JProperty("roleid", _liveRoleID),
+                        new JProperty("token", _token),
+                        new JProperty("twitchclientid", _twitchclientid),
+                        new JProperty("optout", _optout.ToArray()));
+                    File.WriteAllText(@"..\..\botvars.json", botvars.ToString());
+                    await Log(new LogMessage(LogSeverity.Info, "Optout", $"Successfully saved new json file."));
                 }
             }
         }
