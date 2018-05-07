@@ -17,6 +17,7 @@ namespace zBotR
         private string _twitchclientid = "";
         private List<string> _optout;
         private const string _apiLink = "https://api.twitch.tv/kraken/streams/";
+        private ulong _liveRoleID;
 
         static void Main(string[] args) => new Program().MainAsync().GetAwaiter().GetResult();
 
@@ -35,6 +36,7 @@ namespace zBotR
             _twitchclientid = botvars.twitchclientid;
             string[] optoutarray = botvars.optout.ToObject<string[]>();
             _optout = optoutarray.ToList();
+            _liveRoleID = botvars.roleid;
 
             await _client.LoginAsync(TokenType.Bot, token);
             await _client.StartAsync();
@@ -48,7 +50,8 @@ namespace zBotR
                         $" {_client.Guilds.Count} guild, serving a total of {n} online users."));
                 Log(new LogMessage(LogSeverity.Info, "Client", $"Total of {_optout.Count} users opted out."));
                 Console.ResetColor();
-                CheckUsersTimer();
+                //CheckUsersTimer();
+
                 return Task.CompletedTask;
             };
             await Task.Delay(Timeout.Infinite);
