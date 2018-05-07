@@ -1,13 +1,11 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
 using System.Threading.Tasks;
 using Discord;
 using Discord.WebSocket;
 using System.IO;
 using System.Net;
-using System.Runtime.CompilerServices;
 using System.Threading;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
@@ -19,12 +17,12 @@ namespace zBotR
         private DiscordSocketClient _client;
         private string _twitchclientid = "";
         private List<string> _optout;
-        private const string _apiLink = "https://api.twitch.tv/kraken/streams/";
-        private ulong _liveRoleID;
+        private const string ApiLink = "https://api.twitch.tv/kraken/streams/";
+        private ulong _liveRoleId;
         private IRole _liveRole;
         string _token;
 
-        static void Main(string[] args) => new Program().MainAsync().GetAwaiter().GetResult();
+        static void Main() => new Program().MainAsync().GetAwaiter().GetResult();
 
         public async Task MainAsync()
         {
@@ -41,7 +39,7 @@ namespace zBotR
             _twitchclientid = botvars.twitchclientid;
             string[] optoutarray = botvars.optout.ToObject<string[]>();
             _optout = optoutarray.ToList();
-            _liveRoleID = botvars.roleid;
+            _liveRoleId = botvars.roleid;
             _token =  botvars.token;
 
             await _client.LoginAsync(TokenType.Bot, _token);
@@ -60,7 +58,7 @@ namespace zBotR
 
                 foreach (var guild in _client.Guilds)
                 {
-                    _liveRole = guild.GetRole(_liveRoleID);
+                    _liveRole = guild.GetRole(_liveRoleId);
                 }
 
                 return Task.CompletedTask;
@@ -109,11 +107,11 @@ namespace zBotR
             }
             else
             {
-                await Log(new LogMessage(LogSeverity.Info, "CRITICAL", $"Error"));
+                await Log(new LogMessage(LogSeverity.Info, "CRITICAL", "Error"));
                 return;
             }
             var twitchUserName = streamingGame.Url.Substring(streamingGame.Url.LastIndexOf('/') + 1);
-            var apiRequest = _apiLink + twitchUserName;
+            var apiRequest = ApiLink + twitchUserName;
             var apiRequestResponse = await TwitchRequest(apiRequest);
 
             if (apiRequestResponse == null)
@@ -201,13 +199,13 @@ namespace zBotR
 
                 if (changedList)
                 {
-                    JObject botvars = new JObject(
-                        new JProperty("roleid", _liveRoleID),
+                    var botvars = new JObject(
+                        new JProperty("roleid", _liveRoleId),
                         new JProperty("token", _token),
                         new JProperty("twitchclientid", _twitchclientid),
-                        new JProperty("optout", _optout.ToArray()));
+                        new JProperty("optout", _optout));
                     File.WriteAllText(@"..\..\botvars.json", botvars.ToString());
-                    await Log(new LogMessage(LogSeverity.Info, "Optout", $"Successfully saved new json file."));
+                    await Log(new LogMessage(LogSeverity.Info, "Optout", "Successfully saved new json file."));
                 }
             }
         }
