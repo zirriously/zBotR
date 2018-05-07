@@ -261,3 +261,5 @@ __pycache__/
 *.pyc
 /zBotR/token.txt
 /zBotR/twitchclientid.txt
+/zBotR/optout.txt
+/zBotR/botvars.json
