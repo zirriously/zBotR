@@ -14,9 +14,9 @@ namespace zBotR
     class Program
     {
         private DiscordSocketClient _client;
-        private string _token = "";
         private string _twitchclientid = "";
         private List<string> _optout;
+        private const string _apiLink = "https://api.twitch.tv/kraken/streams/";
 
         static void Main(string[] args) => new Program().MainAsync().GetAwaiter().GetResult();
 
@@ -31,24 +31,45 @@ namespace zBotR
             _client.Log += Log;
 
             var botvars = JsonConvert.DeserializeObject<dynamic>(File.ReadAllText(@"..\..\botvars.json"));
-            _token = botvars.token;
+            string token = botvars.token;
             _twitchclientid = botvars.twitchclientid;
             string[] optoutarray = botvars.optout.ToObject<string[]>();
             _optout = optoutarray.ToList();
 
-            await _client.LoginAsync(TokenType.Bot, _token);
+            await _client.LoginAsync(TokenType.Bot, token);
             await _client.StartAsync();
 
             _client.Ready += () =>
             {
                 int n = _client.Guilds.Sum(guild => guild.Users.Count);
-                Console.WriteLine(
-                    $"{_client.CurrentUser.Username} is connected to {_client.Guilds.Count} guild, serving a total of {n} online users.");
+                Console.ForegroundColor = ConsoleColor.Blue;
+                Log(new LogMessage(LogSeverity.Info, "Client",
+                        $"{_client.CurrentUser.Username} is connected to" +
+                        $" {_client.Guilds.Count} guild, serving a total of {n} online users."));
+                Console.ResetColor();
+
+
                 return Task.CompletedTask;
             };
 
             await Task.Delay(Timeout.Infinite);
         }
+
+        private async Task CheckUsers()
+        {
+
+        }
+
+        private async Task CheckSingleUser(SocketGuildUser user)
+        {
+
+        }
+
+        private async Task AssignLiveRole(SocketGuildUser user)
+        {
+
+        }
+
 
         private Task Log(LogMessage message)
         {
