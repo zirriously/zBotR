@@ -91,6 +91,13 @@ namespace zBotR
                             Console.ResetColor();
                             await user.RemoveRoleAsync(_liveRole);
                         }
+                        else if (user.Activity == null && user.Roles.Contains(_liveRole))
+                        {
+                            Console.ForegroundColor = ConsoleColor.Red;
+                            await Log(new LogMessage(LogSeverity.Info, "Client", $"{user} is no longer streaming. Removing role."));
+                            Console.ResetColor();
+                            await user.RemoveRoleAsync(_liveRole);
+                        }
                     }
                 }
 
