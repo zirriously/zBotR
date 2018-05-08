@@ -16,11 +16,12 @@ namespace zBotR
     {
         private DiscordSocketClient _client;
         private string _twitchclientid = "";
+        private TwitchLookup _twitchLookup;
         private List<string> _optout;
         private const string ApiLink = "https://api.twitch.tv/kraken/streams/";
         private ulong _liveRoleId;
         private IRole _liveRole;
-        string _token;
+        private string _token;
 
         static void Main() => new Program().MainAsync().GetAwaiter().GetResult();
 
@@ -41,6 +42,7 @@ namespace zBotR
             _optout = optoutarray.ToList();
             _liveRoleId = botvars.roleid;
             _token =  botvars.token;
+            _twitchLookup = new TwitchLookup(_twitchclientid);
 
             await _client.LoginAsync(TokenType.Bot, _token);
             await _client.StartAsync();
@@ -78,7 +80,6 @@ namespace zBotR
                         if (user.Activity != null && user.Activity.Type == ActivityType.Streaming
                             && !_optout.Contains(user.Id.ToString()))
                         {
-                            await Task.Delay(1);
                             CheckSingleUser(user);
                         }
 
@@ -119,7 +120,7 @@ namespace zBotR
             }
             var twitchUserName = streamingGame.Url.Substring(streamingGame.Url.LastIndexOf('/') + 1);
             var apiRequest = ApiLink + twitchUserName;
-            var apiRequestResponse = await TwitchRequest(apiRequest);
+            var apiRequestResponse = await _twitchLookup.TwitchRequest(apiRequest);
 
             if (apiRequestResponse == null)
             {
@@ -221,27 +222,6 @@ namespace zBotR
         {
             Console.WriteLine(message.ToString());
             return Task.CompletedTask;
-        }
-
-        private Task<string> TwitchRequest(string url)
-        {
-            var req = (HttpWebRequest)WebRequest.Create(url);
-            req.Method = "GET";
-            req.Headers.Add("Client-ID", _twitchclientid);
-            req.Timeout = 2000;
-            req.KeepAlive = true;
-
-            var webResponse = (HttpWebResponse)req.GetResponse();
-
-            if (webResponse.StatusCode == HttpStatusCode.OK)
-            {
-                var sr = new StreamReader(webResponse.GetResponseStream() ?? throw new InvalidOperationException());
-                string strResponse = sr.ReadToEnd();
-                sr.Close();
-                return Task.FromResult(strResponse);
-            }
-            return null;
-
         }
     }
 }
