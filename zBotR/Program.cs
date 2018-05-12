@@ -72,24 +72,7 @@ namespace zBotR
             await Task.Delay(Timeout.Infinite);
         }
 
-        private void CheckUsersTimer()
-        {
-            Task.Run(async () =>
-            {
-                while (true)
-                {
-                    Console.ForegroundColor = ConsoleColor.Blue;
-                    await Log(new LogMessage(LogSeverity.Info, "Timer", "Checking users for stream status..."));
-                    Console.ResetColor();
-                    await _userHandler.CheckUsers(_optout);
-                    Console.ForegroundColor = ConsoleColor.Blue;
-                    await Log(new LogMessage(LogSeverity.Info, "Timer", "Done. Sleeping for 1 minute..."));
-                    Console.ResetColor();
-                    await Task.Delay(60000);
-                }
-            });
-        }
-
+        #region LiveRole
         private async Task MessageReceived(SocketMessage message)
         {
             if (message.Channel.Name == "bot-stuff" && message.Content.StartsWith(".."))
@@ -131,6 +114,25 @@ namespace zBotR
                 }
             }
         }
+
+        private void CheckUsersTimer()
+        {
+            Task.Run(async () =>
+            {
+                while (true)
+                {
+                    Console.ForegroundColor = ConsoleColor.Blue;
+                    await Log(new LogMessage(LogSeverity.Info, "Timer", "Checking users for stream status..."));
+                    Console.ResetColor();
+                    await _userHandler.CheckUsers(_optout);
+                    Console.ForegroundColor = ConsoleColor.Blue;
+                    await Log(new LogMessage(LogSeverity.Info, "Timer", "Done. Sleeping for 1 minute..."));
+                    Console.ResetColor();
+                    await Task.Delay(60000);
+                }
+            });
+        }
+        #endregion
 
         public static Task Log(LogMessage message)
         {
