@@ -14,6 +14,11 @@ namespace zBotR
 {
     class Program
     {
+        /*
+        Current plugins:
+        LiveRole      | Enabled  | Assigns people currently playing selected game specified role on Discord. Automatically checks every minute.
+        EventManager  | WIP      | Allows users to sign up or out for community announcement pings.
+        */
         private DiscordSocketClient _client;
         private string _twitchclientid = "";
         private TwitchLookup _twitchLookup;
