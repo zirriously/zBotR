@@ -23,40 +23,37 @@ namespace zBotR
 
         public async Task CheckUsers(List<string> optout)
         {
-            await Task.Run(async () =>
+            foreach (var guild in _discordSocketClient.Guilds)
             {
-                foreach (var guild in _discordSocketClient.Guilds)
+                foreach (var user in guild.Users)
                 {
-                    foreach (var user in guild.Users)
+                    // check if streaming
+                    if (user.Activity != null && user.Activity.Type == ActivityType.Streaming
+                                              && !optout.Contains(user.Id.ToString()))
                     {
-                        // check if streaming
-                        if (user.Activity != null && user.Activity.Type == ActivityType.Streaming
-                                                  && !optout.Contains(user.Id.ToString()))
-                        {
-                            CheckSingleUser(user);
-                        }
+                        await CheckSingleUser(user);
+                    }
 
-                        // check if not streaming but has role
-                        else if (user.Activity != null &&
-                                 (user.Roles.Contains(_liveRole) && user.Activity.Type != ActivityType.Streaming))
-                        {
-                            Console.ForegroundColor = ConsoleColor.Red;
-                            await Program.Log(new LogMessage(LogSeverity.Info, "Client", $"{user} is no longer streaming. Removing role."));
-                            Console.ResetColor();
-                            await user.RemoveRoleAsync(_liveRole);
-                        }
-                        else if (user.Activity == null && user.Roles.Contains(_liveRole))
-                        {
-                            Console.ForegroundColor = ConsoleColor.Red;
-                            await Program.Log(new LogMessage(LogSeverity.Info, "Client", $"{user} is no longer streaming. Removing role."));
-                            Console.ResetColor();
-                            await user.RemoveRoleAsync(_liveRole);
-                        }
+                    // check if not streaming but has role
+                    else if (user.Activity != null &&
+                             (user.Roles.Contains(_liveRole) && user.Activity.Type != ActivityType.Streaming))
+                    {
+                        Console.ForegroundColor = ConsoleColor.Red;
+                        await Program.Log(new LogMessage(LogSeverity.Info, "Client",
+                            $"{user} is no longer streaming. Removing role."));
+                        Console.ResetColor();
+                        await user.RemoveRoleAsync(_liveRole);
+                    }
+                    else if (user.Activity == null && user.Roles.Contains(_liveRole))
+                    {
+                        Console.ForegroundColor = ConsoleColor.Red;
+                        await Program.Log(new LogMessage(LogSeverity.Info, "Client",
+                            $"{user} is no longer streaming. Removing role."));
+                        Console.ResetColor();
+                        await user.RemoveRoleAsync(_liveRole);
                     }
                 }
-
-                return Task.CompletedTask;
-            });
+            }
         }
 
         private async Task CheckSingleUser(SocketGuildUser user)

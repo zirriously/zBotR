@@ -17,7 +17,9 @@ namespace zBotR
         /*
         Current plugins:
         LiveRole      | Enabled  | Assigns people currently playing selected game specified role on Discord. Automatically checks every minute.
-        EventManager  | WIP      | Allows users to sign up or out for community announcement pings.
+        EventPings    | WIP      | Allows users to sign up or out for community announcement pings.
+                -EventPingsRole  | WIP | Workaround for Discord limitations regarding not being able to allow certain roles only be pingable by admins.
+                                       | Makes the role pingable, pings it, then changes the role back.
         */
         private DiscordSocketClient _client;
         private string _twitchclientid = "";
@@ -64,7 +66,9 @@ namespace zBotR
                         $" {_client.Guilds.Count} guild, serving a total of {n} online users."));
                 Log(new LogMessage(LogSeverity.Info, "Client", $"Total of {_optout.Count} users opted out."));
                 Console.ResetColor();
-                CheckUsersTimer();
+
+                var thread = new Thread(new ThreadStart(CheckUsersTask));
+                thread.Start();
 
                 foreach (var guild in _client.Guilds) // weird way of getting role. Should fix
                 {
@@ -77,7 +81,6 @@ namespace zBotR
             await Task.Delay(Timeout.Infinite);
         }
 
-        #region LiveRole
         private async Task MessageReceived(SocketMessage message)
         {
             if (message.Channel.Name == "bot-stuff" && message.Content.StartsWith(".."))
@@ -120,9 +123,10 @@ namespace zBotR
             }
         }
 
-        private void CheckUsersTimer()
+
+        private async void CheckUsersTask()
         {
-            Task.Run(async () =>
+            await Task.Run(async () =>
             {
                 while (true)
                 {
@@ -133,11 +137,11 @@ namespace zBotR
                     Console.ForegroundColor = ConsoleColor.Blue;
                     await Log(new LogMessage(LogSeverity.Info, "Timer", "Done. Sleeping for 1 minute..."));
                     Console.ResetColor();
-                    await Task.Delay(60000);
+                    Thread.Sleep(60000);
                 }
             });
         }
-        #endregion
+
 
         public static Task Log(LogMessage message)
         {
@@ -145,4 +149,5 @@ namespace zBotR
             return Task.CompletedTask;
         }
     }
+
 }
